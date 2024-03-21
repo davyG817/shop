@@ -56,25 +56,26 @@
         /* Product styles */
         .product {
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 10px;
             overflow: hidden;
             transition: transform 0.3s ease;
             background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
         .product:hover {
             transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .product img {
             width: 100%;
             height: auto;
             border-bottom: 1px solid #ccc;
+            border-radius: 10px 10px 0 0;
         }
 
         .product .info {
-            padding: 10px;
+            padding: 20px;
         }
 
         .product h2 {
@@ -95,7 +96,7 @@
             background-color: #007bff;
             color: #fff;
             border: none;
-            border-radius: 0;
+            border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
@@ -107,14 +108,16 @@
         /* Cart styles */
         .cart {
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 10px;
             background-color: rgba(255, 255, 255, 0.9); /* Add some transparency to the cart */
             margin-top: 20px;
             padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
         .cart h2 {
             margin-top: 0;
+            color: #333;
         }
 
         .cart ul {
@@ -142,6 +145,7 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            margin-top: 20px;
         }
 
         .checkout-btn:hover {
@@ -202,33 +206,32 @@
     <!-- JavaScript for Cart Functionality and PayPal Checkout -->
     <script>
         var cartItems = [];
-
+    
         document.querySelectorAll('.add-to-cart').forEach(function(button) {
             button.addEventListener('click', function() {
-                console.log("Add to Cart button clicked");
                 var productName = this.dataset.productName;
                 var price = parseFloat(this.dataset.price);
                 addToCart(productName, price);
             });
         });
-
+    
         function addToCart(productName, price) {
             cartItems.push({ name: productName, price: price });
             renderCart();
             updatePayPalButton(); // Call the function to update PayPal button after adding to cart
         }
-
+    
         function renderCart() {
             var cartList = document.getElementById('cart-items');
             cartList.innerHTML = '';
-
+    
             cartItems.forEach(function(item) {
                 var li = document.createElement('li');
-                li.textContent = item.name + ' - $' + item.price
+                li.textContent = item.name + ' - $' + item.price.toFixed(2);
                 cartList.appendChild(li);
             });
         }
-
+    
         function calculateTotalAmount() {
             var total = 0;
             cartItems.forEach(function(item) {
@@ -236,22 +239,46 @@
             });
             return total;
         }
-
+    
         function updatePayPalButton() {
-            var totalAmount = calculateTotalAmount();
-            var paypalButtonContainer = document.getElementById('paypal-button-container');
+    var totalAmount = calculateTotalAmount();
+    var paypalButtonContainer = document.getElementById('paypal-button-container');
 
-            // If cart has items and total is greater than 0, show PayPal button
-            if (cartItems.length > 0 && totalAmount > 0) {
-                paypalButtonContainer.style.display = 'block';
-                renderPayPalButton(totalAmount);
-            } else {
-                paypalButtonContainer.style.display = 'none';
-            }
+    // Clear PayPal button container before rendering
+    paypalButtonContainer.innerHTML = '';
+
+    // Render PayPal button
+    paypal.Buttons({
+        style: {
+            layout: 'horizontal'
+        },
+        createOrder: function(data, actions) {
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        value: totalAmount.toFixed(2)
+                    }
+                }]
+            });
+        },
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                alert('Transaction completed by ' + details.payer.name.given_name);
+                // Implement further actions after successful payment
+            });
         }
-
+    }).render('#paypal-button-container');
+}
         function renderPayPalButton(totalAmount) {
             paypal.Buttons({
+                style: {
+                    layout: 'horizontal',
+                    color: 'gold', // Customize button color
+                    shape: 'rect', // Use rectangular button shape
+                    label: 'pay', // Button text label
+                    height: 40, // Button height
+                    tagline: false // Hide PayPal tagline
+                },
                 createOrder: function(data, actions) {
                     return actions.order.create({
                         purchase_units: [{
@@ -261,6 +288,10 @@
                         }]
                     });
                 },
+                onError: function(err) {
+                    console.error('An error occurred during PayPal checkout:', err);
+                    alert('An error occurred during PayPal checkout. Please try again later.');
+                },
                 onApprove: function(data, actions) {
                     return actions.order.capture().then(function(details) {
                         alert('Transaction completed by ' + details.payer.name.given_name);
@@ -269,10 +300,14 @@
                 }
             }).render('#paypal-button-container');
         }
-
+    
         function showPayPalButton() {
-            console.log("Showing PayPal button");
+            var paypalButtonContainer = document.getElementById('paypal-button-container');
+            paypalButtonContainer.style.display = 'block'; // Show the PayPal button container
         }
+    
+        document.querySelector('.checkout-btn').addEventListener('click', showPayPalButton);
     </script>
+    
 </body>
 </html>
